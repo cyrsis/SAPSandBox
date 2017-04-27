@@ -1,0 +1,145 @@
+CLASS zcl_simple_alv DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !title TYPE string OPTIONAL
+        !fields_to_be_hidden TYPE string OPTIONAL .
+    METHODS display
+      CHANGING
+        !data_to_be_displayed TYPE ANY TABLE
+      RAISING
+        cx_salv_msg
+        cx_salv_not_found .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA _title TYPE string .
+    DATA _fields_to_be_hidden TYPE string .
+    DATA _alv_object TYPE REF TO cl_salv_table .
+
+    METHODS customize_alv
+      RAISING
+        cx_salv_not_found .
+    METHODS hide_columns
+      RAISING
+        cx_salv_not_found .
+    METHODS optimize_column_width .
+    METHODS set_toolbar .
+    METHODS set_zebra_mode_and_title .
+    METHODS customize_alv_full .
+ENDCLASS.
+
+
+
+CLASS ZCL_SIMPLE_ALV IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_SIMPLE_ALV->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] TITLE                          TYPE        STRING(optional)
+* | [--->] FIELDS_TO_BE_HIDDEN            TYPE        STRING(optional)
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD constructor.
+    _title               = title.
+    _fields_to_be_hidden = fields_to_be_hidden.
+  ENDMETHOD.                    "CONSTRUCTOR
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->CUSTOMIZE_ALV
+* +-------------------------------------------------------------------------------------------------+
+* | [!CX!] CX_SALV_NOT_FOUND
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD customize_alv.
+    set_toolbar( ).
+    optimize_column_width( ).
+    set_zebra_mode_and_title( ).
+    hide_columns( ).
+  ENDMETHOD.                    "customize_alv
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->CUSTOMIZE_ALV_FULL
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD customize_alv_full.
+  ENDMETHOD.                    "CUSTOMIZE_ALV_FULL
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_SIMPLE_ALV->DISPLAY
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] DATA_TO_BE_DISPLAYED           TYPE        ANY TABLE
+* | [!CX!] CX_SALV_MSG
+* | [!CX!] CX_SALV_NOT_FOUND
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD display.
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = _alv_object
+      CHANGING
+        t_table = data_to_be_displayed
+    ).
+
+    customize_alv( ).
+
+    _alv_object->display( ).
+  ENDMETHOD.                    "display
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->HIDE_COLUMNS
+* +-------------------------------------------------------------------------------------------------+
+* | [!CX!] CX_SALV_NOT_FOUND
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD hide_columns.
+    DATA fields_to_be_hidden_list TYPE TABLE OF string. " in 7.3 you do not have Inline Declaration
+    DATA field_to_be_hidden       LIKE LINE OF fields_to_be_hidden_list. " in 7.3 you do not have Inline Declaration
+    DATA field_name_char30        TYPE lvc_fname. " in 7.3 you do not have Inline Declaration
+
+    SPLIT _fields_to_be_hidden AT ';' INTO TABLE fields_to_be_hidden_list.
+
+    LOOP AT fields_to_be_hidden_list INTO field_to_be_hidden.
+      field_name_char30 = field_to_be_hidden. " instead of CONV operator you have to convert it manually
+      _alv_object->get_columns( )->get_column( field_name_char30 )->set_visible( abap_false ).
+    ENDLOOP.
+  ENDMETHOD.                    "HIDE_COLUMNS
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->OPTIMIZE_COLUMN_WIDTH
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD optimize_column_width.
+    _alv_object->get_columns( )->set_optimize( ).
+  ENDMETHOD.                    "OPTIMIZE_COLUMN_WIDTH
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->SET_TOOLBAR
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD set_toolbar.
+    _alv_object->get_functions( )->set_all( ).
+  ENDMETHOD.                    "SET_TOOLBAR
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->SET_ZEBRA_MODE_AND_TITLE
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD set_zebra_mode_and_title.
+    DATA title_of_alv_char70 TYPE lvc_title. " in 7.3 you do not have Inline Declaration
+
+    title_of_alv_char70 = _title. " instead of CONV operator you have to convert it manually
+
+    _alv_object->get_display_settings( )->set_striped_pattern( abap_true ).
+    _alv_object->get_display_settings( )->set_list_header( title_of_alv_char70 ).
+  ENDMETHOD.                    "SET_ZEBRA_MODE_AND_TITLE
+ENDCLASS.

@@ -1,0 +1,153 @@
+CLASS zcl_simple_alv DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    METHODS constructor
+      IMPORTING
+        !title TYPE string OPTIONAL
+        !fields_to_be_hidden TYPE string OPTIONAL .
+    METHODS display
+      CHANGING
+        !data_to_be_displayed TYPE ANY TABLE
+      RAISING
+        cx_salv_msg
+        cx_salv_not_found .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA _title TYPE string .
+    DATA _fields_to_be_hidden TYPE string .
+    DATA _alv_object TYPE REF TO cl_salv_table .
+
+    METHODS customize_alv
+      RAISING
+        cx_salv_not_found .
+    METHODS hide_columns
+      RAISING
+        cx_salv_not_found .
+    METHODS optimize_column_width .
+    METHODS set_toolbar .
+    METHODS set_zebra_mode_and_title .
+    METHODS customize_alv_full .
+ENDCLASS.
+
+
+
+CLASS zcl_simple_alv IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_SIMPLE_ALV->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] TITLE                          TYPE        STRING(optional)
+* | [--->] FIELDS_TO_BE_HIDDEN            TYPE        STRING(optional)
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD constructor.
+    _title               = title.
+    _fields_to_be_hidden = fields_to_be_hidden.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->CUSTOMIZE_ALV
+* +-------------------------------------------------------------------------------------------------+
+* | [!CX!] CX_SALV_NOT_FOUND
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD customize_alv.
+    set_toolbar( ).
+    optimize_column_width( ).
+    set_zebra_mode_and_title( ).
+    hide_columns( ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->CUSTOMIZE_ALV_FULL
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD customize_alv_full.
+    " This code snippet sets the Application Toolbar above the list
+    _alv_object->get_functions( )->set_all( ).
+
+    " This code snippet optimizes the column width based on the content
+    _alv_object->get_columns( )->set_optimize( ).
+
+    " This code snippet sets the zebra pattern more, and the title
+    _alv_object->get_display_settings( )->set_striped_pattern( abap_true ).
+    _alv_object->get_display_settings( )->set_list_header( CONV #( _title ) ).
+
+    " This code snippet hides the unnecessary columns
+    SPLIT _fields_to_be_hidden AT ';' INTO TABLE DATA(fields_to_be_hidden_list).
+
+    LOOP AT fields_to_be_hidden_list INTO DATA(field_to_be_hidden).
+      _alv_object->get_columns( )->get_column( CONV #( field_to_be_hidden ) )->set_visible( abap_false ).
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_SIMPLE_ALV->DISPLAY
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] DATA_TO_BE_DISPLAYED           TYPE        ANY TABLE
+* | [!CX!] CX_SALV_MSG
+* | [!CX!] CX_SALV_NOT_FOUND
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD display.
+    cl_salv_table=>factory(
+      IMPORTING
+        r_salv_table = _alv_object
+      CHANGING
+        t_table = data_to_be_displayed
+    ).
+
+    customize_alv( ).
+
+    _alv_object->display( ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->HIDE_COLUMNS
+* +-------------------------------------------------------------------------------------------------+
+* | [!CX!] CX_SALV_NOT_FOUND
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD hide_columns.
+    SPLIT _fields_to_be_hidden AT ';' INTO TABLE DATA(fields_to_be_hidden_list).
+
+    LOOP AT fields_to_be_hidden_list INTO DATA(field_to_be_hidden).
+      _alv_object->get_columns( )->get_column( CONV #( field_to_be_hidden ) )->set_visible( abap_false ).
+    ENDLOOP.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->OPTIMIZE_COLUMN_WIDTH
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD optimize_column_width.
+    _alv_object->get_columns( )->set_optimize( ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->SET_TOOLBAR
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD set_toolbar.
+    _alv_object->get_functions( )->set_all( ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_SIMPLE_ALV->SET_ZEBRA_MODE_AND_TITLE
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD set_zebra_mode_and_title.
+    _alv_object->get_display_settings( )->set_striped_pattern( abap_true ).
+    _alv_object->get_display_settings( )->set_list_header( CONV #( _title ) ).
+  ENDMETHOD.
+ENDCLASS.

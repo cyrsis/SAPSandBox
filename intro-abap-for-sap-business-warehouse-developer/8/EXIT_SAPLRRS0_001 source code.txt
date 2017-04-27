@@ -1,0 +1,123 @@
+*==========================================================
+* FUNCTION module
+*==========================================================
+FUNCTION EXIT_SAPLRRS0_001.
+*"---------------------------------------------------------
+*"*"Lokale Schnittstelle:
+*"  IMPORTING
+*"     VALUE(I_VNAM) LIKE  RSZGLOBV-VNAM
+*"     VALUE(I_VARTYP) LIKE  RSZGLOBV-VARTYP
+*"     VALUE(I_IOBJNM) LIKE  RSZGLOBV-IOBJNM
+*"     VALUE(I_S_COB_PRO) TYPE  RSD_S_COB_PRO
+*"     VALUE(I_S_RKB1D) TYPE  RSR_S_RKB1D
+*"     VALUE(I_PERIV) TYPE  RRO01_S_RKB1F-PERIV
+*"     VALUE(I_T_VAR_RANGE) TYPE  RRS0_T_VAR_RANGE
+*"     VALUE(I_STEP) TYPE  I DEFAULT 0
+*"  EXPORTING
+*"     VALUE(E_T_RANGE) TYPE  RSR_T_RANGESID
+*"     VALUE(E_MEEHT) LIKE  RSZGLOBV-MEEHT
+*"     VALUE(E_MEFAC) LIKE  RSZGLOBV-MEFAC
+*"     VALUE(E_WAERS) LIKE  RSZGLOBV-WAERS
+*"     VALUE(E_WHFAC) LIKE  RSZGLOBV-WHFAC
+*"     VALUE(E_NO_SCREEN) TYPE  RS_BOOL
+*"     VALUE(E_CHECK_AGAIN) TYPE  RS_BOOL
+*"  CHANGING
+*"     VALUE(C_S_CUSTOMER) TYPE  RRO04_S_CUSTOMER OPTIONAL
+*"---------------------------------------------------------
+
+INCLUDE ZXRSRU01 .
+
+ENDFUNCTION.
+
+
+*==========================================================
+* ZXRSRU01 include
+*==========================================================
+*----------------------------------------------------------
+* CONSTANT definitions
+*----------------------------------------------------------
+CONSTANTS processing_default_values TYPE i VALUE 1.
+CONSTANTS processing_hidden_values  TYPE i VALUE 2.
+CONSTANTS screen_validation         TYPE i VALUE 3.
+
+CONSTANTS inclusive                 TYPE c LENGTH 1 VALUE 'I'.
+
+CONSTANTS equals                    TYPE c LENGTH 2 VALUE 'EQ'.
+CONSTANTS between                   TYPE c LENGTH 2 VALUE 'BT'.
+
+CONSTANTS america                   TYPE /bic/oizregion VALUE 'AME'.
+
+CONSTANTS true                      TYPE c LENGTH 1 VALUE 'T'.
+CONSTANTS false                     TYPE c LENGTH 1 VALUE 'F'.
+
+CONSTANTS error                     TYPE c LENGTH 1 VALUE 'E'.
+
+*----------------------------------------------------------
+* VARIABLE definitions
+*----------------------------------------------------------
+DATA today                      TYPE d.
+DATA fourmonthsago              TYPE d.
+DATA is_book_or_booktype_empty  TYPE c LENGTH 1 VALUE true.
+
+*----------------------------------------------------------
+* WORKAREA definitions
+*----------------------------------------------------------
+DATA variable_range_line LIKE LINE OF e_t_range.
+DATA screen_range_line   LIKE LINE OF i_t_var_range.
+
+*----------------------------------------------------------
+* BUSINESS logic
+*----------------------------------------------------------
+CASE i_step.
+*----------------------------------------------------------
+  WHEN processing_default_values.
+    CASE i_vnam.
+      WHEN 'ZCALMONTH_V05'.
+        CLEAR variable_range_line.
+
+        today         = sy-datum.
+        fourmonthsago = today - 120.
+
+        variable_range_line-low  = fourmonthsago+0(6).
+        variable_range_line-high = today+0(6).
+        variable_range_line-sign = inclusive.
+        variable_range_line-opt  = between.
+
+        APPEND variable_range_line TO e_t_range.
+        " WHEN 'NEW_VARIABLE'.
+    ENDCASE.
+*----------------------------------------------------------
+  WHEN processing_hidden_values.
+    CASE i_vnam.
+      WHEN 'ZREGION_V01'.
+        CLEAR variable_range_line.
+
+        variable_range_line-low  = america.
+        variable_range_line-sign = inclusive.
+        variable_range_line-opt  = equals.
+
+        APPEND variable_range_line TO e_t_range.
+        " WHEN 'NEW_VARIABLE'.
+    ENDCASE.
+*----------------------------------------------------------
+  WHEN screen_validation.
+    CASE i_s_rkb1d-compid.
+      WHEN 'ZBS01MP_Q01'.
+        LOOP AT i_t_var_range INTO screen_range_line
+          WHERE vnam = 'ZBOOK_V01' OR vnam = 'ZBOOKTYPE_V01'.
+          is_book_or_booktype_empty = false.
+          EXIT.
+        ENDLOOP.
+
+        IF is_book_or_booktype_empty = true.
+          CALL FUNCTION 'RRMS_MESSAGE_HANDLING'
+            EXPORTING
+              i_type  = error
+              i_msgv1 = 'You should select Book or Booktype'.
+
+          RAISE stop_processing.
+        ENDIF.
+        " WHEN 'NEW_QUERY'.
+    ENDCASE.
+*----------------------------------------------------------
+ENDCASE.

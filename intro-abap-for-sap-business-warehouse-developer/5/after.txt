@@ -1,0 +1,97 @@
+===========================================================
+GLOBAL AREA
+===========================================================
+*----------------------------------------------------------
+* INTERNAL TABLE definitions
+*----------------------------------------------------------
+    DATA discounts_table TYPE STANDARD TABLE OF /bic/azbs01ds00.
+    DATA booktypes_table TYPE STANDARD TABLE OF /bic/mzbook.
+
+*----------------------------------------------------------
+* CONSTANT definitions
+*----------------------------------------------------------
+    CONSTANTS active     TYPE /bi0/oitctobjvers VALUE 'A'.
+
+
+===========================================================
+START ROUTINE
+===========================================================
+*---Discounts DSO buffering--------------------------------
+    IF discounts_table IS INITIAL.
+      SELECT *
+        INTO TABLE discounts_table
+        FROM /bic/azbs01ds00.
+
+      IF sy-subrc = 0.
+        SORT discounts_table BY calmonth2 /bic/zbooktype.
+      ENDIF.
+    ENDIF.
+
+*---Booktypes Master Data buffering------------------------
+    IF booktypes_table IS INITIAL.
+      SELECT *
+        INTO TABLE booktypes_table
+        FROM  /bic/mzbook
+        WHERE objvers = active.
+
+      IF sy-subrc = 0.
+        SORT booktypes_table BY /bic/zbook.
+      ENDIF.
+    ENDIF.
+
+
+===========================================================
+FIELD RULE ROUTINE
+===========================================================
+*----------------------------------------------------------
+* VARIABLE definitions
+*----------------------------------------------------------
+    DATA booktype             TYPE /bic/oizbooktype.
+    DATA month_of_sale        TYPE /bi0/oicalmonth2.
+    DATA discount_percentage  TYPE /bic/oikdiscperc.
+    DATA sales_amount         TYPE /bi0/oiamount.
+    DATA sales_date           TYPE /bi0/oicalday.
+    DATA book_code            TYPE /bic/oizbook.
+
+*----------------------------------------------------------
+* WORKAREA definitions
+*----------------------------------------------------------
+    DATA discounts_line  TYPE /bic/azbs01ds00.
+    DATA booktypes_line  TYPE /bic/mzbook.
+
+*----------------------------------------------------------
+* VARIABLE assignments
+*----------------------------------------------------------
+    sales_date   = source_fields-calday.
+    book_code    = source_fields-/bic/zbook.
+    sales_amount = source_fields-amount.
+
+*----------------------------------------------------------
+* BUSINESS logic
+*----------------------------------------------------------
+*---1. step------------------------------------------------
+    month_of_sale = sales_date+4(2).
+
+*---2. step------------------------------------------------
+    READ TABLE booktypes_table
+      INTO booktypes_line
+      WITH KEY /bic/zbook = book_code
+      BINARY SEARCH.
+
+    IF sy-subrc = 0.
+      booktype = booktypes_line-/bic/zbooktype.
+    ENDIF.
+
+*---3. step------------------------------------------------
+    READ TABLE discounts_table
+      INTO discounts_line
+      WITH KEY calmonth2      = month_of_sale
+               /bic/zbooktype = booktype
+      BINARY SEARCH.
+
+    IF sy-subrc = 0.
+      discount_percentage = discounts_line-/bic/kdiscperc.
+    ENDIF.
+
+*---4. step------------------------------------------------
+    result = sales_amount * discount_percentage / 100.

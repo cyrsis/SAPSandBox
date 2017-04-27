@@ -1,0 +1,6 @@
+  " D:\Documents\Pluralsight\Sales_20130921.csv
+
+  CONCATENATE 'D:\Documents\Pluralsight\Sales_' sy-datum '.csv'
+  INTO        p_filename.
+
+  p_subrc = 0.

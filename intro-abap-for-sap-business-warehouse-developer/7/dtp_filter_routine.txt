@@ -1,0 +1,37 @@
+*----------------------------------------------------------
+* CONSTANT definitions
+*----------------------------------------------------------
+  CONSTANTS active  TYPE /bi0/oitctobjvers VALUE 'A'.
+  CONSTANTS america TYPE /bic/oizregion    VALUE 'AME'.
+
+*----------------------------------------------------------
+* WORK AREA definitions
+*----------------------------------------------------------
+  DATA american_customers_line  TYPE /bic/mzcustomer.
+
+*----------------------------------------------------------
+* INTERNAL TABLE definitions
+*----------------------------------------------------------
+  DATA american_customers_table TYPE STANDARD TABLE OF /bic/mzcustomer.
+
+*----------------------------------------------------------
+* BUSINESS logic
+*----------------------------------------------------------
+  SELECT *
+    INTO TABLE american_customers_table
+    FROM       /bic/mzcustomer
+    WHERE      objvers        = active
+    AND        /bic/zregion   = america.
+
+  IF sy-subrc = 0.
+    LOOP AT american_customers_table INTO american_customers_line.
+      l_t_range-low       = american_customers_line-/bic/zcustomer.
+      l_t_range-fieldname = '/BIC/ZCUSTOMER'.
+      l_t_range-sign      = 'I'.
+      l_t_range-option    = 'EQ'.
+      APPEND l_t_range.
+    ENDLOOP.
+    p_subrc = 0.
+  ELSE.
+    p_subrc = 1.
+  ENDIF.

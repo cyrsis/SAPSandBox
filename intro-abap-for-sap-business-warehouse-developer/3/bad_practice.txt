@@ -1,0 +1,21 @@
+* DECLARATION
+
+    DATA bt(2)  TYPE c.
+    DATA ms(2)  TYPE c.
+    DATA dp  	TYPE i.
+    DATA sa  	TYPE i.
+
+* PSEUDO CODE - Logic to be implemented
+
+*  1. Derive month from the sales date, for example 20130105 means January
+
+*  2. Get the booktype from the book master based on the bookcode
+
+*  3. Define the discountpercent
+*    a. IF Month = January AND booktype = Children THEN discountpercent is 30.
+*    b. IF Month = September AND booktype = Travel THEN discountpercent is 15.
+*    c. IF Month = July AND booktype = Webdesign THEN discountpercent is 5.
+
+*  4. Define discount: discount = salesamount * discountpercent / 100.
+
+    result = source_fields-amount * dp / 100.
